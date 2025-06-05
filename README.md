@@ -28,6 +28,8 @@ Searches for directories using **partial** and **case-insensitive matching**, th
 
 **After creating or deleting** the **directory** to update the  changes **use command  `ud`**
 
+You can add or remove directories you want to search by using `gedit ~/.tools/Lists/ignore_dir`
+
 **Syntax:**  
 ```bash
 mcd [partial_folder_name]
