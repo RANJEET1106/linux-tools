@@ -1,0 +1,35 @@
+#!/bin/bash
+
+REPO_URL="https://github.com/YOUR_USERNAME/Linux-Tools.git"
+TOOLS_DIR="$HOME/.tools"
+SCRIPTS_DIR="$TOOLS_DIR/Scripts"
+LISTS_DIR="$TOOLS_DIR/Lists"
+
+echo "🔄 Updating tools..."
+
+# Clone latest to a temporary directory with sparse checkout
+TMP_DIR=$(mktemp -d)
+git clone --depth=1 --filter=blob:none --sparse "$REPO_URL" "$TMP_DIR" >/dev/null 2>&1
+cd "$TMP_DIR"
+git sparse-checkout init --cone
+git sparse-checkout set Scripts Lists
+
+# ✅ Update Scripts
+cp -ru Scripts/* "$SCRIPTS_DIR"
+chmod -R +x "$SCRIPTS_DIR"
+
+# ✅ Add only new list files (preserve existing user-modified lists)
+mkdir -p "$LISTS_DIR"
+for file in Lists/*; do
+  filename=$(basename "$file")
+  if [ ! -e "$LISTS_DIR/$filename" ]; then
+    cp "$file" "$LISTS_DIR/$filename"
+    echo "➕ Added new list: $filename"
+  fi
+done
+
+# Cleanup
+rm -rf "$TMP_DIR"
+
+echo "✅ Tools updated!"
+
