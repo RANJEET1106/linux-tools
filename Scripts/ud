@@ -1,0 +1,24 @@
+#!/bin/bash
+
+    cache_file="$HOME/.tools/Cache/dir_cache"
+    ignore_file="$HOME/.tools/Lists/ignore_dir"
+
+if [ ! -f "$cache_file" ]; then
+    mkdir -p "$(dirname "$cache_file")"
+    touch "$cache_file"
+fi
+    # Read ignore patterns from the file into an array
+    ignore_list=() 
+    mapfile -t ignore_list < "$ignore_file"
+
+    # Start building the find command
+    find_args=($HOME)
+
+    # Add prune conditions for each ignore pattern
+    for pattern in "${ignore_list[@]}"; do
+        find_args+=( \( -ipath "$pattern" -o -ipath "$pattern/*" \) -prune -o )
+    done
+
+    # Add the final condition: only list directories
+     find_args+=(-type d -print)
+    find "${find_args[@]}" > "$cache_file"
