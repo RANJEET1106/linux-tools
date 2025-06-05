@@ -1,0 +1,103 @@
+#!/bin/bash
+
+pattern="$1"
+
+# Search for matching files in current dir
+matches=()
+while IFS= read -r -d '' file; do
+  matches+=("$file")
+done < <(find . -maxdepth 1 -type f -iname "*$pattern*" -print0)
+
+if [ ${#matches[@]} -eq 0 ]; then
+  echo "No matching files found for pattern: $pattern"
+  exit 1
+elif [ ${#matches[@]} -gt 1 ]; then
+  echo "Multiple matches found:"
+  for i in "${!matches[@]}"; do
+    echo "$((i+1)). ${matches[i]}"
+  done
+  read -rp "Select a file to run [1-${#matches[@]}]: " choice
+  if ! [[ "$choice" =~ ^[0-9]+$ ]] || (( choice < 1 || choice > ${#matches[@]} )); then
+    echo "Invalid selection."
+    exit 1
+  fi
+  file="${matches[choice-1]}"
+else
+  file="${matches[0]}"
+fi
+
+
+ext="${file##*.}"
+filename="${file%.*}"
+dir="$(dirname "$file")"
+base="$(basename "$filename")"
+clear
+echo "▶ Running: $file"
+cd "$dir" || exit 1
+
+case ".$ext" in
+  .ahk) autohotkey "$file" ;;
+  .au3) autoit3 "$file" ;;
+  .bat) cmd /c "$file" ;;
+  .clj) lein exec "$file" ;;
+  .coffee) coffee "$file" ;;
+  .cr) crystal "$file" ;;
+  .cs) scriptcs "$file" ;;
+  .csproj) dotnet run --project "$file" ;;
+  .cu) nvcc "$file" -o "$base" && "./$base" ;;
+  .c) gcc "$file" -o /tmp/"$base" && time /tmp/"$base" && rm /tmp/"$base" ;;
+  .cpp) g++ "$file" -o /tmp/"$base" && time /tmp/"$base" && rm /tmp/"$base" ;;
+  .dart) dart "$file" ;;
+  .d) dmd "$file" && "./$base" ;;
+  .erl) escript "$file" ;;
+  .exs) elixir "$file" ;;
+  .f | .f90 | .f95) gfortran "$file" -o /tmp/"$base" && /tmp/"$base" && rm /tmp/"$base" ;;
+  .fs) fsi "$file" ;;
+  .fsproj) dotnet run --project "$file" ;;
+  .gleam) gleam run -m "$base" ;;
+  .go) go run "$file" ;;
+  .groovy) groovy "$file" ;;
+  .hs) runhaskell "$file" ;;
+  .hx) haxe --cwd "$dir" --run "$base" ;;
+  .java) javac "$file" && mv "$base".class /tmp/ && time java -cp /tmp "$base" && rm /tmp/"$base".class ;;
+  .jl) julia "$file" ;;
+  .js) node "$file" ;;
+  .json) echo "🔹 JSON: No execution command — maybe use jq or similar" ;;
+  .kit) kitc --run "$file" ;;
+  .kts) time kotlinc -script "$file" ;;
+  .kt) kotlinc "$file" -include-runtime -d /tmp/"$base".jar && time java -jar /tmp/"$base".jar && rm /tmp/"$base".jar ;;
+  .less) lessc "$file" "$base".css ;;
+  .lisp) sbcl --script "$file" ;;
+  .lua) lua "$file" ;;
+  .ml) ocaml "$file" ;;
+  .mojo) mojo run "$file" ;;
+  .m) gcc -framework Cocoa "$file" -o "$base" && "./$base" ;; # Objective-C
+  .nim) nim compile --verbosity:0 --hints:off --run "$file" ;;
+  .pas | .pp) fpc "$file" && "./$base" ;;
+  .perl6 | .pm) perl6 "$file" ;;
+  .php) php "$file" ;;
+  .pl) perl "$file" ;;
+  .pkl) pkl eval -f yaml "$file" -o "$base".yaml ;;
+  .ps1) powershell -ExecutionPolicy ByPass -File "$file" ;;
+  .py) time python -u "$file" ;;
+  .r) Rscript "$file" ;;
+  .racket) racket "$file" ;;
+  .rb) ruby "$file" ;;
+  .ring) ring "$file" ;;
+  .rs) rustc "$file" && time "./$base" && rm "$base" ;;
+  .sass) sass --style expanded "$file" ;;
+  .scala | .sc) scala "$file" ;;
+  .scm) csi -script "$file" ;;
+  .scss) scss --style expanded "$file" ;;
+  .sh) bash "$file" ;;
+  .sml) sml "$file" ;;
+  .spwn) spwn build "$file" ;;
+  .swift) swift "$file" ;;
+  .ts) ts-node "$file" ;;
+  .vb) vbc /nologo "$file" && "./$base" ;;
+  .vbs) cscript //Nologo "$file" ;;
+  .v | .vsh) v run "$file" ;;
+  .xml) echo "🔹 XML: No execution command — maybe use xmllint" ;;
+  .zig) zig run "$file" ;;
+  *) echo "❌ Unsupported or unknown file extension: .$ext" ;;
+esac
